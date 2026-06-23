@@ -81,3 +81,15 @@ func TestParseCLITimeoutDefault(t *testing.T) {
 		t.Fatalf("default timeout = %v, want 30s", opts.timeout)
 	}
 }
+
+func TestParseCLIHonorsNoColorEnv(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+
+	opts, err := parseCLI([]string{"https://example.com"})
+	if err != nil {
+		t.Fatalf("parseCLI returned error: %v", err)
+	}
+	if !opts.noColor {
+		t.Fatal("NO_COLOR should disable color output by default")
+	}
+}
