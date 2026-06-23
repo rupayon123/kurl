@@ -231,7 +231,7 @@ func saveRequestLocally(name string, opts cliOptions) error {
 }
 
 func loadRequestLocally(name string) (cliOptions, error) {
-	options := cliOptions{method: "GET", timeout: 30 * time.Second}
+	options := defaultCLIOptions()
 	if !isValidRequestName(name) {
 		return options, fmt.Errorf("invalid request name %q (only alphanumeric, hyphens, and underscores allowed)", name)
 	}
@@ -270,7 +270,7 @@ func loadRequestLocally(name string) (cliOptions, error) {
 	options.data = req.Data
 	options.headers = req.Headers
 	options.timeout = timeout
-	options.noColor = req.NoColor
+	options.noColor = options.noColor || req.NoColor
 	options.headersOnly = req.HeadersOnly
 	options.bodyOnly = req.BodyOnly
 	options.raw = req.Raw
@@ -311,8 +311,16 @@ func parseTimeout(value string) (time.Duration, error) {
 	return duration, nil
 }
 
+func defaultCLIOptions() cliOptions {
+	return cliOptions{
+		method:  "GET",
+		timeout: 30 * time.Second,
+		noColor: os.Getenv("NO_COLOR") != "",
+	}
+}
+
 func parseCLI(args []string) (cliOptions, error) {
-	return parseCLIWithBase(cliOptions{method: "GET", timeout: 30 * time.Second}, args)
+	return parseCLIWithBase(defaultCLIOptions(), args)
 }
 
 func parseCLIWithBase(base cliOptions, args []string) (cliOptions, error) {
