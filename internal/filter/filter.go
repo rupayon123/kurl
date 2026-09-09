@@ -44,19 +44,43 @@ func evalPath(val interface{}, query string) (interface{}, error) {
 		return nil, err
 	}
 
-	curr := val
-	for _, tok := range tokens {
-		if curr == nil {
-			return nil, nil
-		}
-		next, err := stepToken(curr, tok)
-		if err != nil {
-			return nil, err
-		}
-		curr = next
+	values, err := walkPath(val, tokens)
+	if err != nil {
+		return nil, err
 	}
+	for _, tok := range tokens {
+		if tok.kind == "all" {
+			return values, nil
+		}
+	}
+	return values[0], nil
+}
 
-	return curr, nil
+// walkPath collects projection results without flattening ordinary array fields.
+func walkPath(val interface{}, tokens []token) ([]interface{}, error) {
+	if len(tokens) == 0 || val == nil {
+		return []interface{}{val}, nil
+	}
+	if tokens[0].kind == "all" {
+		arr, ok := val.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("cannot iterate all elements on non-array")
+		}
+		result := make([]interface{}, 0)
+		for _, item := range arr {
+			values, err := walkPath(item, tokens[1:])
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, values...)
+		}
+		return result, nil
+	}
+	next, err := stepToken(val, tokens[0])
+	if err != nil {
+		return nil, err
+	}
+	return walkPath(next, tokens[1:])
 }
 
 type token struct {

@@ -84,3 +84,19 @@ func TestApplyFilterEdgeCases(t *testing.T) {
 	}
 }
 
+func TestApplyFilterProjectsArrayFields(t *testing.T) {
+	for _, tc := range []struct{ input, query, want string }{
+		{`{"users":[{"name":"Alice"},{"name":"Bob"}]}`, `.users[].name`, `["Alice","Bob"]`},
+		{`{"users":[]}`, `.users[].name`, `[]`},
+		{`{"users":[{"name":"Alice"},{}]}`, `.users[].name`, `["Alice",null]`},
+		{`{"groups":[{"users":[{"name":"Alice"}]},{"users":[{"name":"Bob"}]}]}`, `.groups[].users[].name`, `["Alice","Bob"]`},
+		{`{"users":[{"tags":["a"]},{"tags":["b","c"]}]}`, `.users[].tags`, `[["a"],["b","c"]]`},
+	} {
+		t.Run(tc.query+tc.input, func(t *testing.T) {
+			got, err := ApplyFilter([]byte(tc.input), tc.query)
+			if err != nil || string(got) != tc.want {
+				t.Fatalf("got %s, %v; want %s", got, err, tc.want)
+			}
+		})
+	}
+}
