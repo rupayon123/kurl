@@ -2,6 +2,7 @@ package sse
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -31,11 +32,17 @@ type Options struct {
 // ParseStream reads SSE events line-by-line from a Reader according to W3C EventSource spec
 func ParseStream(r io.Reader, handler func(Event)) error {
 	scanner := bufio.NewScanner(r)
+	scanner.Split(eventStreamLines())
+	firstLine := true
 	var current Event
 	hasData := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if firstLine {
+			line = strings.TrimPrefix(line, "\ufeff")
+			firstLine = false
+		}
 		if line == "" {
 			// Dispatch event on empty line
 			if hasData {
@@ -83,6 +90,30 @@ func ParseStream(r io.Reader, handler func(Event)) error {
 	}
 
 	return scanner.Err()
+}
+
+// eventStreamLines accepts CR, LF, and CRLF, including split CRLF pairs.
+func eventStreamLines() bufio.SplitFunc {
+	skipLF := false
+	return func(data []byte, atEOF bool) (int, []byte, error) {
+		if len(data) == 0 {
+			return 0, nil, nil
+		}
+		if skipLF {
+			skipLF = false
+			if data[0] == '\n' {
+				return 1, nil, nil
+			}
+		}
+		if i := bytes.IndexAny(data, "\r\n"); i >= 0 {
+			skipLF = data[i] == '\r'
+			return i + 1, data[:i], nil
+		}
+		if atEOF {
+			return len(data), data, nil
+		}
+		return 0, nil, nil
+	}
 }
 
 // RunSSE connects to an SSE endpoint and streams colorized events
