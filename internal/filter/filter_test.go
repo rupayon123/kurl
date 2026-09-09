@@ -115,3 +115,20 @@ func TestEmptyArraysRemainArrays(t *testing.T) {
 		}
 	}
 }
+
+func TestConsecutiveArrayIndexes(t *testing.T) {
+	got, err := ApplyFilter([]byte(`{"matrix":[[10,20],[30,40]]}`), `.matrix[1][0]`)
+	if err != nil || string(got) != `30` {
+		t.Fatalf("got %s, %v; want 30", got, err)
+	}
+}
+
+func TestMalformedBracketQueriesReturnErrors(t *testing.T) {
+	for _, query := range []string{`.items[0`, `.items]`, `.items][0]`, `.items[0]junk`, `.items[0][x]`} {
+		t.Run(query, func(t *testing.T) {
+			if _, err := ApplyFilter([]byte(`{"items":[1,2]}`), query); err == nil {
+				t.Fatal("accepted malformed bracket query")
+			}
+		})
+	}
+}

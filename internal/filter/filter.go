@@ -102,18 +102,24 @@ func parseTokens(query string) ([]token, error) {
 			continue
 		}
 
-		// Handle array indexing like `users[0]` or `users[]` or `[0]`
-		if strings.Contains(part, "[") && strings.HasSuffix(part, "]") {
-			openIdx := strings.Index(part, "[")
-			closeIdx := strings.Index(part, "]")
-
-			fieldName := part[:openIdx]
-			bracketVal := part[openIdx+1 : closeIdx]
-
-			if fieldName != "" {
-				tokens = append(tokens, token{kind: "field", val: fieldName})
+		bracket := strings.IndexAny(part, "[]")
+		if bracket == -1 {
+			tokens = append(tokens, token{kind: "field", val: part})
+			continue
+		}
+		if bracket > 0 {
+			tokens = append(tokens, token{kind: "field", val: part[:bracket]})
+		}
+		rest := part[bracket:]
+		for len(rest) > 0 {
+			if rest[0] != '[' {
+				return nil, fmt.Errorf("invalid bracket syntax in query %q", query)
 			}
-
+			closeIdx := strings.IndexByte(rest, ']')
+			if closeIdx < 0 {
+				return nil, fmt.Errorf("unclosed array index in query %q", query)
+			}
+			bracketVal := rest[1:closeIdx]
 			if bracketVal == "" {
 				tokens = append(tokens, token{kind: "all"})
 			} else {
@@ -123,8 +129,7 @@ func parseTokens(query string) ([]token, error) {
 				}
 				tokens = append(tokens, token{kind: "index", idx: idx})
 			}
-		} else {
-			tokens = append(tokens, token{kind: "field", val: part})
+			rest = rest[closeIdx+1:]
 		}
 	}
 
