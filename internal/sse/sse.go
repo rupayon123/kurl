@@ -32,15 +32,17 @@ type Options struct {
 func ParseStream(r io.Reader, handler func(Event)) error {
 	scanner := bufio.NewScanner(r)
 	var current Event
+	hasData := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
 			// Dispatch event on empty line
-			if current.Data != "" || current.Event != "" || current.ID != "" {
+			if hasData {
 				handler(current)
-				current = Event{}
 			}
+			current = Event{ID: current.ID}
+			hasData = false
 			continue
 		}
 
@@ -61,13 +63,16 @@ func ParseStream(r io.Reader, handler func(Event)) error {
 		case "event":
 			current.Event = value
 		case "data":
-			if current.Data != "" {
+			if hasData {
 				current.Data += "\n" + value
 			} else {
 				current.Data = value
 			}
+			hasData = true
 		case "id":
-			current.ID = value
+			if !strings.ContainsRune(value, '\x00') {
+				current.ID = value
+			}
 		case "retry":
 			if ms, err := time.ParseDuration(value + "ms"); err == nil {
 				current.Retry = ms
