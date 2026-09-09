@@ -1,6 +1,7 @@
 package graphql
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -63,7 +64,12 @@ func BuildPayload(queryStr, variablesStr string, introspect bool) ([]byte, error
 
 	if variablesStr != "" {
 		var vars map[string]interface{}
-		if err := json.Unmarshal([]byte(variablesStr), &vars); err != nil {
+		if !json.Valid([]byte(variablesStr)) {
+			return nil, fmt.Errorf("invalid GraphQL variables JSON")
+		}
+		decoder := json.NewDecoder(bytes.NewBufferString(variablesStr))
+		decoder.UseNumber()
+		if err := decoder.Decode(&vars); err != nil {
 			return nil, fmt.Errorf("invalid GraphQL variables JSON: %w", err)
 		}
 		payload.Variables = vars
