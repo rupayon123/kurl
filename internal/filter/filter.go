@@ -1,8 +1,10 @@
 package filter
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -19,8 +21,8 @@ func ApplyFilter(jsonData []byte, query string) ([]byte, error) {
 		return jsonData, nil
 	}
 
-	var root interface{}
-	if err := json.Unmarshal(jsonData, &root); err != nil {
+	root, err := decodeJSON(jsonData)
+	if err != nil {
 		return nil, fmt.Errorf("invalid JSON response: %w", err)
 	}
 
@@ -58,9 +60,9 @@ func evalPath(val interface{}, query string) (interface{}, error) {
 }
 
 type token struct {
-	kind   string // "field", "index", "all"
-	val    string
-	idx    int
+	kind string // "field", "index", "all"
+	val  string
+	idx  int
 }
 
 func parseTokens(query string) ([]token, error) {
@@ -80,7 +82,7 @@ func parseTokens(query string) ([]token, error) {
 		if strings.Contains(part, "[") && strings.HasSuffix(part, "]") {
 			openIdx := strings.Index(part, "[")
 			closeIdx := strings.Index(part, "]")
-			
+
 			fieldName := part[:openIdx]
 			bracketVal := part[openIdx+1 : closeIdx]
 
@@ -146,8 +148,8 @@ func FilterKeys(jsonData []byte, keysCSV string) ([]byte, error) {
 		}
 	}
 
-	var root interface{}
-	if err := json.Unmarshal(jsonData, &root); err != nil {
+	root, err := decodeJSON(jsonData)
+	if err != nil {
 		return nil, err
 	}
 
@@ -178,8 +180,8 @@ func filterKeysValue(val interface{}, keys []string) interface{} {
 
 // FlattenArray flattens nested arrays in JSON data.
 func FlattenArray(jsonData []byte) ([]byte, error) {
-	var root interface{}
-	if err := json.Unmarshal(jsonData, &root); err != nil {
+	root, err := decodeJSON(jsonData)
+	if err != nil {
 		return nil, err
 	}
 
@@ -205,4 +207,22 @@ func FlattenArray(jsonData []byte) ([]byte, error) {
 	}
 
 	return json.Marshal(result)
+}
+
+// decodeJSON preserves numeric literals while still accepting exactly one value.
+func decodeJSON(data []byte) (interface{}, error) {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	var value interface{}
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("multiple JSON values in response")
+	}
+	return value, nil
 }
