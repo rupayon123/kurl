@@ -41,7 +41,7 @@ func ParseStream(r io.Reader, handler func(Event)) error {
 			if hasData {
 				handler(current)
 			}
-			current = Event{ID: current.ID}
+			current = Event{ID: current.ID, Retry: current.Retry}
 			hasData = false
 			continue
 		}
@@ -74,8 +74,10 @@ func ParseStream(r io.Reader, handler func(Event)) error {
 				current.ID = value
 			}
 		case "retry":
-			if ms, err := time.ParseDuration(value + "ms"); err == nil {
-				current.Retry = ms
+			if value != "" && strings.IndexFunc(value, func(r rune) bool { return r < '0' || r > '9' }) == -1 {
+				if ms, err := time.ParseDuration(value + "ms"); err == nil {
+					current.Retry = ms
+				}
 			}
 		}
 	}
