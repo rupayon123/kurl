@@ -100,3 +100,18 @@ func TestApplyFilterProjectsArrayFields(t *testing.T) {
 		})
 	}
 }
+
+func TestEmptyArraysRemainArrays(t *testing.T) {
+	for _, input := range []string{`[]`, `[[],[]]`} {
+		got, err := FlattenArray([]byte(input))
+		if err != nil || string(got) != `[]` {
+			t.Errorf("flatten %s: got %s, %v", input, got, err)
+		}
+	}
+	for _, tc := range []struct{ input, want string }{{`[]`, `[]`}, {`[[],{"id":1}]`, `[[],{"id":1}]`}} {
+		got, err := FilterKeys([]byte(tc.input), "id")
+		if err != nil || string(got) != tc.want {
+			t.Errorf("keys %s: got %s, %v; want %s", tc.input, got, err, tc.want)
+		}
+	}
+}

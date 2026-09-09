@@ -192,7 +192,7 @@ func filterKeysValue(val interface{}, keys []string) interface{} {
 		}
 		return res
 	case []interface{}:
-		var res []interface{}
+		res := make([]interface{}, 0, len(v))
 		for _, elem := range v {
 			res = append(res, filterKeysValue(elem, keys))
 		}
@@ -214,7 +214,7 @@ func FlattenArray(jsonData []byte) ([]byte, error) {
 		return jsonData, nil
 	}
 
-	var result []interface{}
+	result := make([]interface{}, 0)
 	var flatten func(item interface{})
 	flatten = func(item interface{}) {
 		if innerArr, isArr := item.([]interface{}); isArr {
