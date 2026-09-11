@@ -142,6 +142,8 @@ kurl graphql https://api.example.com/graphql --generate-query User
 ```
 
 ### 3. 📡 Server-Sent Events (SSE) Streamer (`kurl sse`)
+
+Individual stream lines must be smaller than 1 MiB (including the line ending). Larger lines return an error instead of growing the scanner without a bound.
 Stream live event feeds (logs, AI completions, notifications) with real-time timestamps and event-type colorization:
 ```bash
 # Stream all SSE events

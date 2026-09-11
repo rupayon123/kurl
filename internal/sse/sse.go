@@ -33,6 +33,8 @@ type Options struct {
 // ParseStream reads SSE events line-by-line from a Reader according to W3C EventSource spec
 func ParseStream(r io.Reader, handler func(Event)) error {
 	scanner := bufio.NewScanner(r)
+	// Allow large JSON payload lines while keeping scanner growth bounded.
+	scanner.Buffer(make([]byte, 4096), 1024*1024)
 	scanner.Split(eventStreamLines())
 	firstLine := true
 	var current Event
