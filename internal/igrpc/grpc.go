@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 type Options struct {
@@ -72,9 +73,10 @@ func Run(ctx context.Context, opts Options) error {
 			return fmt.Errorf("failed to process proto file: %w", err)
 		}
 	} else {
-		refClient := grpcreflect.NewClientAuto(dialCtx, cc)
+		reflectionCtx := metadata.NewOutgoingContext(dialCtx, grpcurl.MetadataFromHeaders(opts.Headers))
+		refClient := grpcreflect.NewClientAuto(reflectionCtx, cc)
 		defer refClient.Reset()
-		descSource = grpcurl.DescriptorSourceFromServer(dialCtx, refClient)
+		descSource = grpcurl.DescriptorSourceFromServer(reflectionCtx, refClient)
 	}
 
 	if opts.ListServices {
