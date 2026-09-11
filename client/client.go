@@ -178,6 +178,10 @@ func fetchSingleWithContext(ctx context.Context, opts Options, target string) (*
 			return nil, err
 		}
 		for name, values := range headers {
+			if name == "Host" {
+				req.Host = headers.Get("Host")
+				continue
+			}
 			for _, value := range values {
 				req.Header.Add(name, value)
 			}
