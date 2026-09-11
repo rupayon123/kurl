@@ -159,13 +159,12 @@ func RunSSE(ctx context.Context, opts Options) error {
 	fmt.Printf("📡 Connected to SSE stream at %s\n\n", opts.URL)
 
 	return ParseStream(resp.Body, func(ev Event) {
-		if opts.FilterType != "" && ev.Event != "" && !strings.EqualFold(ev.Event, opts.FilterType) {
-			return
-		}
-
 		eventType := ev.Event
 		if eventType == "" {
 			eventType = "message"
+		}
+		if opts.FilterType != "" && eventType != opts.FilterType {
+			return
 		}
 
 		timestamp := time.Now().Format("15:04:05")
