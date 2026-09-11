@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/kavix/kurl/client"
 )
@@ -98,7 +99,18 @@ func ExecuteGraphQL(opts Options) (*client.Result, error) {
 		return nil, err
 	}
 
-	headers := append([]string{"Content-Type: application/json"}, opts.Headers...)
+	headers := append([]string(nil), opts.Headers...)
+	hasContentType := false
+	for _, header := range headers {
+		name, _, ok := strings.Cut(header, ":")
+		if ok && strings.EqualFold(strings.TrimSpace(name), "Content-Type") {
+			hasContentType = true
+			break
+		}
+	}
+	if !hasContentType {
+		headers = append([]string{"Content-Type: application/json"}, headers...)
+	}
 
 	fetchOpts := client.Options{
 		Method:  http.MethodPost,
