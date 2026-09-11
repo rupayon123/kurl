@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -100,11 +101,29 @@ func joinURL(baseURL, path string) string {
 		return path
 	}
 	baseURL = strings.TrimSuffix(baseURL, "/")
-	path = strings.TrimPrefix(path, "/")
 	if path == "" {
 		return baseURL
 	}
-	return baseURL + "/" + path
+	fallback := baseURL + "/" + strings.TrimPrefix(path, "/")
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return fallback
+	}
+	relative, err := url.Parse(path)
+	if err != nil {
+		return fallback
+	}
+	// Join paths independently of query strings and fragments.
+	target := base.JoinPath(relative.EscapedPath())
+	if relative.RawQuery != "" || relative.ForceQuery {
+		target.RawQuery = relative.RawQuery
+		target.ForceQuery = relative.ForceQuery
+	}
+	if strings.Contains(path, "#") {
+		target.Fragment = relative.Fragment
+		target.RawFragment = relative.RawFragment
+	}
+	return target.String()
 }
 
 func mergeHeaders(profileHeaders []string, cliHeaders []string) []string {
