@@ -24,13 +24,11 @@ type Header struct {
 }
 
 func Parse(input string) Response {
-	cleaned := strings.ReplaceAll(input, "\r\n", "\n")
-	cleaned = strings.TrimSpace(cleaned)
-	if cleaned == "" {
+	if strings.TrimSpace(input) == "" {
 		return Response{Mode: "empty", Warnings: []string{"input is empty"}}
 	}
 
-	lines := strings.Split(cleaned, "\n")
+	lines := strings.Split(input, "\n")
 	if looksVerbose(lines) {
 		return parseVerbose(lines)
 	}
