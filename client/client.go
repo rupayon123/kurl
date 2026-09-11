@@ -367,6 +367,9 @@ func resolveURL(baseURL string, location string) (string, error) {
 func redirectRequest(method string, statusCode int, body []byte) (string, []byte) {
 	switch statusCode {
 	case http.StatusSeeOther:
+		if method == http.MethodHead {
+			return http.MethodHead, nil
+		}
 		return http.MethodGet, nil
 	case http.StatusMovedPermanently, http.StatusFound:
 		if method != http.MethodGet && method != http.MethodHead {
@@ -377,5 +380,5 @@ func redirectRequest(method string, statusCode int, body []byte) (string, []byte
 }
 
 func isRedirect(code int) bool {
-	return code >= 300 && code < 400
+	return code == http.StatusMovedPermanently || code == http.StatusFound || code == http.StatusSeeOther || code == http.StatusTemporaryRedirect || code == http.StatusPermanentRedirect
 }
