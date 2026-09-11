@@ -51,7 +51,7 @@ func Parse(input string) Response {
 		}
 
 		name, value, found := strings.Cut(line, ":")
-		if !found {
+		if !found || !validHeaderName(strings.TrimSpace(name)) {
 			break
 		}
 
@@ -71,6 +71,20 @@ func Parse(input string) Response {
 	}
 
 	return response
+}
+
+// Header names are nonempty HTTP tokens; JSON keys and body prose are not headers.
+func validHeaderName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, r := range name {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("!#$%&'*+-.^_`|~", r) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func FromHTTPResponse(statusLine string, headers http.Header, body []byte) Response {
