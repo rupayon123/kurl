@@ -132,6 +132,15 @@ func fetchSingle(opts Options, target string) (*Result, error) {
 }
 
 func fetchSingleWithContext(ctx context.Context, opts Options, target string) (*Result, error) {
+	var cancel context.CancelFunc
+	if opts.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
+	}
 	transport := tunedTransport()
 	var rt http.RoundTripper = transport
 	if opts.HTTP3 {
@@ -212,6 +221,10 @@ func fetchSingleWithContext(ctx context.Context, opts Options, target string) (*
 			continue
 		}
 
+		if cancel != nil {
+			resp.Body = &cancelOnCloseReadCloser{ReadCloser: resp.Body, cancel: cancel}
+			cancel = nil // The caller owns the deadline until it closes the body.
+		}
 		result := &Result{Request: req, Response: resp, Redirects: redirects}
 		if timing != nil {
 			result.Timing = timing.result()
