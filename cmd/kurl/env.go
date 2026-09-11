@@ -108,29 +108,39 @@ func joinURL(baseURL, path string) string {
 }
 
 func mergeHeaders(profileHeaders []string, cliHeaders []string) []string {
-	result := append([]string(nil), profileHeaders...)
-
-	for _, cliHeader := range cliHeaders {
-		cliName, _, ok := strings.Cut(cliHeader, ":")
-		if !ok {
-			result = append(result, cliHeader)
+	nameOf := func(header string) (string, bool) {
+		name, _, ok := strings.Cut(header, ":")
+		return strings.ToLower(strings.TrimSpace(name)), ok
+	}
+	overrides := map[string][]string{}
+	for _, header := range cliHeaders {
+		if name, ok := nameOf(header); ok {
+			overrides[name] = append(overrides[name], header)
+		}
+	}
+	result := make([]string, 0, len(profileHeaders)+len(cliHeaders))
+	emitted := map[string]bool{}
+	for _, header := range profileHeaders {
+		name, ok := nameOf(header)
+		replacement, exists := overrides[name]
+		if !ok || !exists {
+			result = append(result, header)
 			continue
 		}
-		cliNameClean := strings.ToLower(strings.TrimSpace(cliName))
-
-		// Check if this header already exists in result
-		found := false
-		for idx, resHeader := range result {
-			resName, _, ok := strings.Cut(resHeader, ":")
-			if ok && strings.ToLower(strings.TrimSpace(resName)) == cliNameClean {
-				// Replace it!
-				result[idx] = cliHeader
-				found = true
-				break
-			}
+		if !emitted[name] {
+			result = append(result, replacement...)
+			emitted[name] = true
 		}
-		if !found {
-			result = append(result, cliHeader)
+	}
+	for _, header := range cliHeaders {
+		name, ok := nameOf(header)
+		if !ok {
+			result = append(result, header)
+			continue
+		}
+		if !emitted[name] {
+			result = append(result, overrides[name]...)
+			emitted[name] = true
 		}
 	}
 	return result
