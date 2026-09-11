@@ -224,8 +224,10 @@ func parseVerbose(lines []string) Response {
 			if payload == "" {
 				continue
 			}
-			if response.RequestLine == "" && strings.Contains(payload, " HTTP/") {
+			fields := strings.Fields(payload)
+			if len(fields) == 3 && validHeaderName(fields[0]) && strings.HasPrefix(fields[2], "HTTP/") {
 				response.RequestLine = payload
+				response.RequestHeaders = nil
 				continue
 			}
 			if name, value, ok := strings.Cut(payload, ":"); ok {
@@ -243,6 +245,8 @@ func parseVerbose(lines []string) Response {
 			}
 			if strings.HasPrefix(payload, "HTTP/") {
 				response.StatusLine = payload
+				response.Headers = nil
+				response.Body = ""
 				inResponseHeaders = true
 				inResponseBody = false
 				continue
