@@ -223,7 +223,8 @@ func fetchSingleWithContext(ctx context.Context, opts Options, target string) (*
 }
 
 func hasExplicitScheme(rawURL string) bool {
-	return strings.HasPrefix(rawURL, "http://") || strings.HasPrefix(rawURL, "https://")
+	scheme, _, ok := strings.Cut(rawURL, "://")
+	return ok && (strings.EqualFold(scheme, "http") || strings.EqualFold(scheme, "https"))
 }
 
 func resolveHostConcurrent(ctx context.Context, host string) ([]net.IP, error) {
