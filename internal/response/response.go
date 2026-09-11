@@ -107,7 +107,7 @@ func FromHTTPResponse(statusLine string, headers http.Header, body []byte) Respo
 func FormatBody(body []byte, contentType string) string {
 	trimmed := bytes.TrimSpace(body)
 	if len(trimmed) == 0 {
-		return ""
+		return string(body)
 	}
 
 	if isJSONContentType(contentType) || json.Valid(trimmed) {
