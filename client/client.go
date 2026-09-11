@@ -63,9 +63,9 @@ func annotateTimeout(err error, timeout time.Duration) error {
 		return err
 	}
 	if timeout > 0 {
-		return fmt.Errorf("request timed out after %s (increase or disable with --timeout)", timeout)
+		return fmt.Errorf("request timed out after %s (increase or disable with --timeout): %w", timeout, err)
 	}
-	return fmt.Errorf("request timed out")
+	return fmt.Errorf("request timed out: %w", err)
 }
 
 func fetchConcurrentSchemes(opts Options) (*Result, error) {
