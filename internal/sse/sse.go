@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -143,6 +144,11 @@ func RunSSE(ctx context.Context, opts Options) error {
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("server returned status %s", resp.Status)
+	}
+
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil || mediaType != "text/event-stream" {
+		return fmt.Errorf("expected Content-Type text/event-stream, got %q", resp.Header.Get("Content-Type"))
 	}
 
 	var logFile *os.File
