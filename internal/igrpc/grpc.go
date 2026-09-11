@@ -118,7 +118,7 @@ func Run(ctx context.Context, opts Options) error {
 		h.VerbosityLevel = 1
 	}
 
-	err = grpcurl.InvokeRPC(ctx, descSource, cc, opts.Method, opts.Headers, h, rf.Next)
+	err = grpcurl.InvokeRPC(dialCtx, descSource, cc, opts.Method, opts.Headers, h, rf.Next)
 	if err != nil {
 		return fmt.Errorf("rpc error: %w", err)
 	}
