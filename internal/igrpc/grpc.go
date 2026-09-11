@@ -56,8 +56,12 @@ func Run(ctx context.Context, opts Options) error {
 		creds = insecure.NewCredentials()
 	}
 
-	dialCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
-	defer cancel()
+	dialCtx := ctx
+	if opts.Timeout > 0 {
+		var cancel context.CancelFunc
+		dialCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer cancel()
+	}
 
 	cc, err := grpc.DialContext(dialCtx, target, grpc.WithTransportCredentials(creds))
 	if err != nil {
