@@ -125,6 +125,7 @@ func Run(ctx context.Context, opts Options) error {
 
 	if h.Status.Code() != 0 {
 		grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
+		return h.Status.Err()
 	}
 
 	return nil
