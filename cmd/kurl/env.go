@@ -81,10 +81,11 @@ func applyEnvironment(opts *cliOptions) error {
 	}
 
 	// 1. Process URL
-	hasScheme := strings.HasPrefix(opts.url, "http://") ||
-		strings.HasPrefix(opts.url, "https://") ||
-		strings.HasPrefix(opts.url, "ws://") ||
-		strings.HasPrefix(opts.url, "wss://")
+	scheme, _, hasSeparator := strings.Cut(opts.url, "://")
+	hasScheme := hasSeparator && (strings.EqualFold(scheme, "http") ||
+		strings.EqualFold(scheme, "https") ||
+		strings.EqualFold(scheme, "ws") ||
+		strings.EqualFold(scheme, "wss"))
 
 	if !hasScheme {
 		opts.url = joinURL(envConfig.BaseURL, opts.url)
