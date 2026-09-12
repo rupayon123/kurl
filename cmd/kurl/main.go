@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -498,6 +499,9 @@ func parseTimeout(value string) (time.Duration, error) {
 	}
 
 	if seconds, err := strconv.ParseFloat(value, 64); err == nil {
+		if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds*float64(time.Second) >= float64(math.MaxInt64) {
+			return 0, fmt.Errorf("invalid timeout %q: must be finite and fit in a duration", value)
+		}
 		if seconds < 0 {
 			return 0, fmt.Errorf("invalid timeout %q: must not be negative", value)
 		}
