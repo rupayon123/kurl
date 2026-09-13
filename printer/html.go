@@ -102,28 +102,18 @@ func format(cw *countingWriter, n *html.Node, depth int, enabled bool, hasHtml, 
 			return nil
 		}
 
-		// Format script and style block content as raw but indented text block
+		// Raw-text content can contain significant whitespace and template literals.
 		if n.Data == "script" || n.Data == "style" {
-			start := renderStartTag(n, enabled)
-			if _, err := fmt.Fprint(cw, strings.Repeat("  ", depth)+start+"\n"); err != nil {
+			if _, err := fmt.Fprint(cw, strings.Repeat("  ", depth)+renderStartTag(n, enabled)); err != nil {
 				return err
 			}
-			if n.FirstChild != nil {
-				lines := strings.Split(n.FirstChild.Data, "\n")
-				for _, line := range lines {
-					trimmed := strings.TrimSpace(line)
-					if trimmed != "" {
-						if _, err := fmt.Fprint(cw, strings.Repeat("  ", depth+1)+trimmed+"\n"); err != nil {
-							return err
-						}
-					}
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				if _, err := fmt.Fprint(cw, c.Data); err != nil {
+					return err
 				}
 			}
-			end := renderEndTag(n, enabled)
-			if _, err := fmt.Fprint(cw, strings.Repeat("  ", depth)+end+"\n"); err != nil {
-				return err
-			}
-			return nil
+			_, err := fmt.Fprint(cw, renderEndTag(n, enabled)+"\n")
+			return err
 		}
 
 		// Handle empty elements
@@ -182,7 +172,11 @@ func formatInline(sb *strings.Builder, n *html.Node, enabled bool) error {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		switch c.Type {
 		case html.TextNode:
-			sb.WriteString(html.EscapeString(c.Data))
+			if n.Data == "script" || n.Data == "style" {
+				sb.WriteString(c.Data)
+			} else {
+				sb.WriteString(html.EscapeString(c.Data))
+			}
 		case html.CommentNode:
 			sb.WriteString(renderComment(c, enabled))
 		case html.ElementNode:
