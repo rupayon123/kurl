@@ -132,8 +132,14 @@ func RunSSE(ctx context.Context, opts Options) error {
 
 	for _, h := range opts.Headers {
 		name, value, ok := strings.Cut(h, ":")
-		if ok {
-			req.Header.Add(strings.TrimSpace(name), strings.TrimSpace(value))
+		if !ok {
+			return fmt.Errorf("invalid header %q", h)
+		}
+		name, value = strings.TrimSpace(name), strings.TrimSpace(value)
+		if strings.EqualFold(name, "Host") {
+			req.Host = value
+		} else {
+			req.Header.Add(name, value)
 		}
 	}
 
