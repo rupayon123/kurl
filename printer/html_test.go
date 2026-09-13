@@ -67,6 +67,7 @@ func TestPrettyHTMLVoidTagsAndComments(t *testing.T) {
 }
 
 func TestPrettyHTMLColorization(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
 	input := `<div class="container">Content</div>`
 	var buf bytes.Buffer
 	_, err := PrettyHTML(&buf, strings.NewReader(input), true) // enabled = true

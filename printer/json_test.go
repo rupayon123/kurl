@@ -31,6 +31,7 @@ func TestPrettyJSON(t *testing.T) {
 }
 
 func TestPrettyJSONColored(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
 	input := `{"key": "value", "num": 42}`
 	var buf bytes.Buffer
 	_, err := PrettyJSON(&buf, strings.NewReader(input), true)
