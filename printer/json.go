@@ -32,6 +32,12 @@ func PrettyJSON(w io.Writer, r io.Reader, enabled bool) (int64, error) {
 	if err := writeJSONValue(cw, dec, enabled, 0); err != nil {
 		return cw.count, err
 	}
+	if _, err := dec.Token(); err != io.EOF {
+		if err != nil {
+			return cw.count, err
+		}
+		return cw.count, fmt.Errorf("unexpected content after JSON value")
+	}
 	if _, err := cw.Write([]byte("\n")); err != nil {
 		return cw.count, err
 	}
