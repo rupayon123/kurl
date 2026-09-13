@@ -28,26 +28,25 @@ func getIndent(depth int) []byte {
 func PrettyJSON(w io.Writer, r io.Reader, enabled bool) (int64, error) {
 	dec := json.NewDecoder(r)
 	dec.UseNumber()
-	var count int64
-	if err := writeJSONValue(w, dec, enabled, 0, &count); err != nil {
-		return count, err
+	cw := &countingWriter{w: w}
+	if err := writeJSONValue(cw, dec, enabled, 0); err != nil {
+		return cw.count, err
 	}
-	if _, err := w.Write([]byte("\n")); err != nil {
-		return count, err
+	if _, err := cw.Write([]byte("\n")); err != nil {
+		return cw.count, err
 	}
-	count++
-	return count, nil
+	return cw.count, nil
 }
 
-func writeJSONValue(w io.Writer, dec *json.Decoder, enabled bool, depth int, count *int64) error {
+func writeJSONValue(w io.Writer, dec *json.Decoder, enabled bool, depth int) error {
 	tok, err := dec.Token()
 	if err != nil {
 		return err
 	}
-	return writeJSONToken(w, dec, tok, enabled, depth, count)
+	return writeJSONToken(w, dec, tok, enabled, depth)
 }
 
-func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool, depth int, count *int64) error {
+func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool, depth int) error {
 	switch v := tok.(type) {
 	case json.Delim:
 		switch v {
@@ -55,21 +54,18 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 			if _, err := w.Write([]byte("{\n")); err != nil {
 				return err
 			}
-			*count += 2
 			first := true
 			for dec.More() {
 				if !first {
 					if _, err := w.Write([]byte(",\n")); err != nil {
 						return err
 					}
-					*count += 2
 				}
 				first = false
 				indent := getIndent(depth + 1)
 				if _, err := w.Write(indent); err != nil {
 					return err
 				}
-				*count += int64(len(indent))
 				keyTok, err := dec.Token()
 				if err != nil {
 					return err
@@ -83,8 +79,7 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 				if _, err := io.WriteString(w, keyFormatted); err != nil {
 					return err
 				}
-				*count += int64(len(key))
-				if err := writeJSONValue(w, dec, enabled, depth+1, count); err != nil {
+				if err := writeJSONValue(w, dec, enabled, depth+1); err != nil {
 					return err
 				}
 			}
@@ -95,28 +90,24 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 			if _, err := io.WriteString(w, closeStr); err != nil {
 				return err
 			}
-			*count += int64(len(closeStr))
 			return nil
 		case '[':
 			if _, err := w.Write([]byte("[\n")); err != nil {
 				return err
 			}
-			*count += 2
 			first := true
 			for dec.More() {
 				if !first {
 					if _, err := w.Write([]byte(",\n")); err != nil {
 						return err
 					}
-					*count += 2
 				}
 				first = false
 				indent := getIndent(depth + 1)
 				if _, err := w.Write(indent); err != nil {
 					return err
 				}
-				*count += int64(len(indent))
-				if err := writeJSONValue(w, dec, enabled, depth+1, count); err != nil {
+				if err := writeJSONValue(w, dec, enabled, depth+1); err != nil {
 					return err
 				}
 			}
@@ -127,7 +118,6 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 			if _, err := io.WriteString(w, closeStr); err != nil {
 				return err
 			}
-			*count += int64(len(closeStr))
 			return nil
 		default:
 			return fmt.Errorf("unexpected delimiter %q", v)
