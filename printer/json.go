@@ -79,7 +79,7 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 					return fmt.Errorf("invalid json key")
 				}
 
-				keyFormatted := color.Key(enabled, `"`+key+`"`) + ": "
+				keyFormatted := color.Key(enabled, quoteJSONString(key)) + ": "
 				if _, err := io.WriteString(w, keyFormatted); err != nil {
 					return err
 				}
@@ -133,7 +133,7 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 			return fmt.Errorf("unexpected delimiter %q", v)
 		}
 	case string:
-		strFormatted := color.String(enabled, `"`+v+`"`)
+		strFormatted := color.String(enabled, quoteJSONString(v))
 		if _, err := io.WriteString(w, strFormatted); err != nil {
 			return err
 		}
@@ -159,4 +159,10 @@ func writeJSONToken(w io.Writer, dec *json.Decoder, tok json.Token, enabled bool
 		}
 	}
 	return nil
+}
+
+// Strings decoded from JSON must be escaped again before being printed.
+func quoteJSONString(value string) string {
+	encoded, _ := json.Marshal(value)
+	return string(encoded)
 }
