@@ -231,7 +231,7 @@ func renderStartTag(n *html.Node, enabled bool) string {
 	sb.WriteString(color.Key(enabled, n.Data))
 	for _, attr := range n.Attr {
 		sb.WriteString(" ")
-		sb.WriteString(color.Number(enabled, attr.Key))
+		sb.WriteString(color.Number(enabled, qualifiedAttributeName(attr)))
 		sb.WriteString(color.Border(enabled, "="))
 		sb.WriteString(color.String(enabled, `"`+html.EscapeString(attr.Val)+`"`))
 	}
@@ -253,7 +253,7 @@ func renderVoidTag(n *html.Node, enabled bool) string {
 	sb.WriteString(color.Key(enabled, n.Data))
 	for _, attr := range n.Attr {
 		sb.WriteString(" ")
-		sb.WriteString(color.Number(enabled, attr.Key))
+		sb.WriteString(color.Number(enabled, qualifiedAttributeName(attr)))
 		sb.WriteString(color.Border(enabled, "="))
 		sb.WriteString(color.String(enabled, `"`+html.EscapeString(attr.Val)+`"`))
 	}
@@ -267,4 +267,11 @@ func renderComment(n *html.Node, enabled bool) string {
 
 func renderDoctype(n *html.Node, enabled bool) string {
 	return color.Wrap(enabled, color.Bold+color.Magenta, "<!DOCTYPE "+n.Data+">")
+}
+
+func qualifiedAttributeName(attr html.Attribute) string {
+	if attr.Namespace != "" {
+		return attr.Namespace + ":" + attr.Key
+	}
+	return attr.Key
 }
