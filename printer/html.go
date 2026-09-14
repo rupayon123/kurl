@@ -131,7 +131,7 @@ func format(cw *countingWriter, n *html.Node, depth int, enabled bool, hasHtml, 
 		}
 
 		// Format simple inline elements (and their inline children) on a single line
-		if hasOnlyInlineChildren(n) {
+		if n.Data == "pre" || hasOnlyInlineChildren(n) {
 			var sb strings.Builder
 			sb.WriteString(renderStartTag(n, enabled))
 			if err := formatInline(&sb, n, enabled); err != nil {
@@ -169,6 +169,11 @@ func format(cw *countingWriter, n *html.Node, depth int, enabled bool, hasHtml, 
 }
 
 func formatInline(sb *strings.Builder, n *html.Node, enabled bool) error {
+	// HTML parsing removes a first newline inside pre/textarea. Restore that
+	// sentinel when the parsed text itself starts with a newline.
+	if (n.Data == "pre" || n.Data == "textarea") && n.FirstChild != nil && n.FirstChild.Type == html.TextNode && strings.HasPrefix(n.FirstChild.Data, "\n") {
+		sb.WriteString("\n")
+	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		switch c.Type {
 		case html.TextNode:
