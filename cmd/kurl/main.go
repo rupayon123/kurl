@@ -164,7 +164,9 @@ func runRequest(opts cliOptions) {
 			fatal(err)
 		}
 	}
-	bw.Flush()
+	if err := bw.Flush(); err != nil {
+		fatal(err)
+	}
 }
 
 func handleSaveCommand(args []string) {
