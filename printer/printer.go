@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -257,22 +258,30 @@ func saveBodyToFile(w io.Writer, body io.Reader, outputPath string) error {
 	return err
 }
 
+func mediaType(contentType string) string {
+	value, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(value)
+}
+
 func isJSON(contentType string, length int64) bool {
-	contentType = strings.ToLower(contentType)
-	return strings.Contains(contentType, "application/json") || strings.Contains(contentType, "+json")
+	value := mediaType(contentType)
+	return value == "application/json" || strings.HasSuffix(value, "+json")
 }
 
 func isBinary(contentType string) bool {
-	contentType = strings.ToLower(contentType)
-	if contentType == "" {
+	value := mediaType(contentType)
+	if value == "" || isJSON(contentType, 0) || isHTML(contentType) {
 		return false
 	}
-	return !strings.HasPrefix(contentType, "text/") && !strings.Contains(contentType, "/json")
+	return !strings.HasPrefix(value, "text/")
 }
 
 func isHTML(contentType string) bool {
-	contentType = strings.ToLower(contentType)
-	return strings.Contains(contentType, "text/html") || strings.Contains(contentType, "application/xhtml+xml")
+	value := mediaType(contentType)
+	return value == "text/html" || value == "application/xhtml+xml"
 }
 
 // RenderTiming prints the per-phase request timing breakdown. The client
