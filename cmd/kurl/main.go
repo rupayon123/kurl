@@ -47,19 +47,23 @@ type cliOptions struct {
 }
 
 type savedRequest struct {
-	Method      string   `json:"method"`
-	URL         string   `json:"url"`
-	Data        string   `json:"data,omitempty"`
-	Headers     []string `json:"headers,omitempty"`
-	Timeout     string   `json:"timeout,omitempty"`
-	NoColor     bool     `json:"no_color,omitempty"`
-	HeadersOnly bool     `json:"headers_only,omitempty"`
-	BodyOnly    bool     `json:"body_only,omitempty"`
-	Raw         bool     `json:"raw,omitempty"`
-	Verbose     bool     `json:"verbose,omitempty"`
-	Timing      bool     `json:"timing,omitempty"`
-	OutputPath  string   `json:"output_path,omitempty"`
-	Env         string   `json:"env,omitempty"`
+	FilterQuery   string   `json:"filter_query,omitempty"`
+	FilterKeys    string   `json:"filter_keys,omitempty"`
+	FilterFlatten bool     `json:"filter_flatten,omitempty"`
+	HTTP3         bool     `json:"http3,omitempty"`
+	Method        string   `json:"method"`
+	URL           string   `json:"url"`
+	Data          string   `json:"data,omitempty"`
+	Headers       []string `json:"headers,omitempty"`
+	Timeout       string   `json:"timeout,omitempty"`
+	NoColor       bool     `json:"no_color,omitempty"`
+	HeadersOnly   bool     `json:"headers_only,omitempty"`
+	BodyOnly      bool     `json:"body_only,omitempty"`
+	Raw           bool     `json:"raw,omitempty"`
+	Verbose       bool     `json:"verbose,omitempty"`
+	Timing        bool     `json:"timing,omitempty"`
+	OutputPath    string   `json:"output_path,omitempty"`
+	Env           string   `json:"env,omitempty"`
 }
 
 func main() {
@@ -406,19 +410,23 @@ func saveRequestLocally(name string, opts cliOptions) error {
 	}
 
 	req := savedRequest{
-		Method:      opts.method,
-		URL:         opts.url,
-		Data:        opts.data,
-		Headers:     opts.headers,
-		Timeout:     opts.timeout.String(),
-		NoColor:     opts.noColor,
-		HeadersOnly: opts.headersOnly,
-		BodyOnly:    opts.bodyOnly,
-		Raw:         opts.raw,
-		Verbose:     opts.verbose,
-		Timing:      opts.timing,
-		OutputPath:  opts.outputPath,
-		Env:         opts.env,
+		FilterQuery:   opts.filterQuery,
+		FilterKeys:    opts.filterKeys,
+		FilterFlatten: opts.filterFlatten,
+		HTTP3:         opts.http3,
+		Method:        opts.method,
+		URL:           opts.url,
+		Data:          opts.data,
+		Headers:       opts.headers,
+		Timeout:       opts.timeout.String(),
+		NoColor:       opts.noColor,
+		HeadersOnly:   opts.headersOnly,
+		BodyOnly:      opts.bodyOnly,
+		Raw:           opts.raw,
+		Verbose:       opts.verbose,
+		Timing:        opts.timing,
+		OutputPath:    opts.outputPath,
+		Env:           opts.env,
 	}
 
 	data, err := json.MarshalIndent(req, "", "  ")
@@ -482,6 +490,10 @@ func loadRequestLocally(name string) (cliOptions, error) {
 	options.timing = req.Timing
 	options.outputPath = req.OutputPath
 	options.env = req.Env
+	options.filterQuery = req.FilterQuery
+	options.filterKeys = req.FilterKeys
+	options.filterFlatten = req.FilterFlatten
+	options.http3 = req.HTTP3
 
 	return options, nil
 }
