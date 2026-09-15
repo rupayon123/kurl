@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,7 +50,13 @@ func runWebSocket(opts cliOptions) {
 		config.Header.Set("Accept", "*/*")
 	}
 
-	ws, err := websocket.DialConfig(config)
+	ctx := context.Background()
+	cancel := func() {}
+	if opts.timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, opts.timeout)
+	}
+	ws, err := config.DialContext(ctx)
+	cancel() // The connection deadline ends once the handshake finishes.
 	if err != nil {
 		fatal(fmt.Errorf("failed to connect to websocket: %w", err))
 	}

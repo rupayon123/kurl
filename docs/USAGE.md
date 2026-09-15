@@ -184,3 +184,5 @@ kurl "https://api.example.com/?search=query"
 alias kurl="noglob kurl"
 ```
 After saving, run `source ~/.zshrc`. You can now pass raw URLs to `kurl` without ever needing quotes again!
+
+For WebSocket URLs, `--timeout` bounds connection establishment and the HTTP upgrade handshake. Once connected, the interactive session remains open until input ends or the peer disconnects. Use `--timeout 0` to disable the connection deadline.
