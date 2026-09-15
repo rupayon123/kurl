@@ -319,7 +319,9 @@ func handleGraphQLCommand(args []string) {
 		bw.Flush()
 		fatal(err)
 	}
-	bw.Flush()
+	if err := bw.Flush(); err != nil {
+		fatal(err)
+	}
 }
 
 func handleSSECommand(args []string) {
