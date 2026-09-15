@@ -115,7 +115,7 @@ func runRequest(opts cliOptions) {
 		fatal(err)
 	}
 
-	if strings.HasPrefix(opts.url, "ws://") || strings.HasPrefix(opts.url, "wss://") {
+	if isWebSocketURL(opts.url) {
 		runWebSocket(opts)
 		return
 	}

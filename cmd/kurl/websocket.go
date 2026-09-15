@@ -20,10 +20,12 @@ func runWebSocket(opts cliOptions) {
 	useColor := color.AutoEnabled(os.Stdout) && !opts.noColor
 
 	// Ensure the URL has ws:// or wss:// scheme
-	if !strings.HasPrefix(opts.url, "ws://") && !strings.HasPrefix(opts.url, "wss://") {
+	if !isWebSocketURL(opts.url) {
 		fatal(fmt.Errorf("invalid websocket url %q (must start with ws:// or wss://)", opts.url))
 	}
 
+	scheme, rest, _ := strings.Cut(opts.url, "://")
+	opts.url = strings.ToLower(scheme) + "://" + rest
 	config, err := websocket.NewConfig(opts.url, opts.url)
 	if err != nil {
 		fatal(fmt.Errorf("failed to create websocket configuration: %w", err))
@@ -133,4 +135,9 @@ func boxTop(enabled bool, title string) string {
 
 func boxBottom(enabled bool, width int) string {
 	return color.Border(enabled, "└"+strings.Repeat("─", width)+"┘")
+}
+
+func isWebSocketURL(raw string) bool {
+	scheme, _, ok := strings.Cut(raw, "://")
+	return ok && (strings.EqualFold(scheme, "ws") || strings.EqualFold(scheme, "wss"))
 }

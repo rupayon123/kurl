@@ -24,7 +24,7 @@ func TestWebSocketSendsInputAboveScannerDefault(t *testing.T) {
 	defer server.Close()
 	payload := strings.Repeat("x", 70*1024)
 	cmd := exec.Command(os.Args[0], "-test.run=^TestWebSocketSendsInputAboveScannerDefault$")
-	cmd.Env = append(os.Environ(), "KURL_WS_INPUT_TEST=ws"+strings.TrimPrefix(server.URL, "http"))
+	cmd.Env = append(os.Environ(), "KURL_WS_INPUT_TEST=WS"+strings.TrimPrefix(server.URL, "http"))
 	cmd.Stdin = strings.NewReader(payload + "\n")
 	if err := cmd.Run(); err != nil {
 		t.Fatal(err)
@@ -36,5 +36,18 @@ func TestWebSocketSendsInputAboveScannerDefault(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("server did not receive input")
+	}
+}
+
+func TestWebSocketSchemeCase(t *testing.T) {
+	for _, raw := range []string{"ws://example.test", "WS://example.test", "wSs://example.test"} {
+		if !isWebSocketURL(raw) {
+			t.Errorf("missed WebSocket URL %q", raw)
+		}
+	}
+	for _, raw := range []string{"http://example.test", "ws-not-a-scheme://example.test"} {
+		if isWebSocketURL(raw) {
+			t.Errorf("misclassified %q", raw)
+		}
 	}
 }
