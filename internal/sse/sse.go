@@ -121,6 +121,10 @@ func eventStreamLines() bufio.SplitFunc {
 
 // RunSSE connects to an SSE endpoint and streams colorized events
 func RunSSE(ctx context.Context, opts Options) error {
+	return runSSE(ctx, opts, os.Stdout)
+}
+
+func runSSE(ctx context.Context, opts Options, output io.Writer) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, opts.URL, nil)
 	if err != nil {
 		return err
@@ -170,9 +174,22 @@ func RunSSE(ctx context.Context, opts Options) error {
 	}
 
 	enabled := color.AutoEnabled(os.Stdout) && !opts.NoColor
-	fmt.Printf("📡 Connected to SSE stream at %s\n\n", opts.URL)
-
-	return ParseStream(resp.Body, func(ev Event) {
+	if _, err := fmt.Fprintf(output, "📡 Connected to SSE stream at %s\n\n", opts.URL); err != nil {
+		return err
+	}
+	var outputErr error
+	stopOnError := func(err error) bool {
+		if err == nil {
+			return false
+		}
+		outputErr = err
+		resp.Body.Close()
+		return true
+	}
+	parseErr := ParseStream(resp.Body, func(ev Event) {
+		if outputErr != nil {
+			return
+		}
 		eventType := ev.Event
 		if eventType == "" {
 			eventType = "message"
@@ -188,15 +205,25 @@ func RunSSE(ctx context.Context, opts Options) error {
 		}
 
 		coloredHeader := color.Wrap(enabled, color.Bold+color.Cyan, header)
-		fmt.Println(coloredHeader)
+		if _, err := fmt.Fprintln(output, coloredHeader); stopOnError(err) {
+			return
+		}
 
 		if ev.Data != "" {
-			fmt.Printf("  %s\n\n", ev.Data)
+			if _, err := fmt.Fprintf(output, "  %s\n\n", ev.Data); stopOnError(err) {
+				return
+			}
 		}
 
 		if logFile != nil {
 			logLine := fmt.Sprintf("[%s] %s: %s\n", timestamp, eventType, ev.Data)
-			logFile.WriteString(logLine)
+			if _, err := logFile.WriteString(logLine); stopOnError(err) {
+				return
+			}
 		}
 	})
+	if outputErr != nil {
+		return outputErr
+	}
+	return parseErr
 }
