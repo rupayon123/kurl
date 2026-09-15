@@ -271,7 +271,9 @@ func renderComment(n *html.Node, enabled bool) string {
 }
 
 func renderDoctype(n *html.Node, enabled bool) string {
-	return color.Wrap(enabled, color.Bold+color.Magenta, "<!DOCTYPE "+n.Data+">")
+	var serialized strings.Builder
+	_ = html.Render(&serialized, n) // strings.Builder cannot fail to write.
+	return color.Wrap(enabled, color.Bold+color.Magenta, serialized.String())
 }
 
 func qualifiedAttributeName(attr html.Attribute) string {
