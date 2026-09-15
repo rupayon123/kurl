@@ -479,7 +479,10 @@ func loadRequestLocally(name string) (cliOptions, error) {
 	if req.Timeout != "" {
 		timeout, err = time.ParseDuration(req.Timeout)
 		if err != nil {
-			timeout = 30 * time.Second
+			return options, fmt.Errorf("invalid saved request timeout %q: %w", req.Timeout, err)
+		}
+		if timeout < 0 {
+			return options, fmt.Errorf("invalid saved request timeout %q: must not be negative", req.Timeout)
 		}
 	} else {
 		timeout = 30 * time.Second
