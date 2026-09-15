@@ -1,13 +1,14 @@
 package main
 
 import (
-	"golang.org/x/net/websocket"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
 func TestWebSocketSendsInputAboveScannerDefault(t *testing.T) {
