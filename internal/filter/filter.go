@@ -15,6 +15,7 @@ import (
 // - `.field` or `.field.subfield`
 // - `.array[0]` or `.array[1].name`
 // - `.array[]` or `.array[].name` (flattens/projects array elements)
+// - `.["field.with.dots"]` for JSON-quoted object keys
 func ApplyFilter(jsonData []byte, query string) ([]byte, error) {
 	query = strings.TrimSpace(query)
 	if query == "" || query == "." {
@@ -90,50 +91,62 @@ type token struct {
 }
 
 func parseTokens(query string) ([]token, error) {
-	if !strings.HasPrefix(query, ".") {
-		query = "." + query
-	}
-
 	var tokens []token
-	parts := strings.Split(query, ".")
-
-	for _, part := range parts {
-		if part == "" {
-			continue
-		}
-
-		bracket := strings.IndexAny(part, "[]")
-		if bracket == -1 {
-			tokens = append(tokens, token{kind: "field", val: part})
-			continue
-		}
-		if bracket > 0 {
-			tokens = append(tokens, token{kind: "field", val: part[:bracket]})
-		}
-		rest := part[bracket:]
-		for len(rest) > 0 {
-			if rest[0] != '[' {
+	for len(query) > 0 {
+		switch query[0] {
+		case '.':
+			query = query[1:]
+		case '[':
+			next, rest, err := parseBracketToken(query)
+			if err != nil {
+				return nil, err
+			}
+			if len(rest) > 0 && rest[0] != '.' && rest[0] != '[' {
 				return nil, fmt.Errorf("invalid bracket syntax in query %q", query)
 			}
-			closeIdx := strings.IndexByte(rest, ']')
-			if closeIdx < 0 {
-				return nil, fmt.Errorf("unclosed array index in query %q", query)
+			tokens = append(tokens, next)
+			query = rest
+		case ']':
+			return nil, fmt.Errorf("unexpected closing bracket in query %q", query)
+		default:
+			end := strings.IndexAny(query, ".[]")
+			if end < 0 {
+				end = len(query)
 			}
-			bracketVal := rest[1:closeIdx]
-			if bracketVal == "" {
-				tokens = append(tokens, token{kind: "all"})
-			} else {
-				idx, err := strconv.Atoi(bracketVal)
-				if err != nil {
-					return nil, fmt.Errorf("invalid array index %q in query", bracketVal)
-				}
-				tokens = append(tokens, token{kind: "index", idx: idx})
-			}
-			rest = rest[closeIdx+1:]
+			tokens = append(tokens, token{kind: "field", val: query[:end]})
+			query = query[end:]
 		}
 	}
-
 	return tokens, nil
+}
+
+func parseBracketToken(query string) (token, string, error) {
+	inside := strings.TrimLeft(query[1:], " \t\r\n")
+	if strings.HasPrefix(inside, `"`) {
+		decoder := json.NewDecoder(strings.NewReader(inside))
+		var field string
+		if err := decoder.Decode(&field); err != nil {
+			return token{}, "", fmt.Errorf("invalid quoted field: %w", err)
+		}
+		rest := strings.TrimLeft(inside[decoder.InputOffset():], " \t\r\n")
+		if len(rest) == 0 || rest[0] != ']' {
+			return token{}, "", fmt.Errorf("missing closing bracket in query %q", query)
+		}
+		return token{kind: "field", val: field}, rest[1:], nil
+	}
+	end := strings.IndexByte(inside, ']')
+	if end < 0 {
+		return token{}, "", fmt.Errorf("unclosed array index in query %q", query)
+	}
+	value := strings.TrimSpace(inside[:end])
+	if value == "" {
+		return token{kind: "all"}, inside[end+1:], nil
+	}
+	index, err := strconv.Atoi(value)
+	if err != nil {
+		return token{}, "", fmt.Errorf("invalid array index %q in query", value)
+	}
+	return token{kind: "index", idx: index}, inside[end+1:], nil
 }
 
 func stepToken(curr interface{}, tok token) (interface{}, error) {

@@ -184,3 +184,5 @@ kurl "https://api.example.com/?search=query"
 alias kurl="noglob kurl"
 ```
 After saving, run `source ~/.zshrc`. You can now pass raw URLs to `kurl` without ever needing quotes again!
+
+JSON filters also accept JSON-quoted bracket fields, such as `--filter '.["release.version"]'`. Quoted fields can contain dots, brackets, empty names, and JSON string escapes, and can be combined with array indexes or projections: `.["items.list"][]["display.name"]`.
