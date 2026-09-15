@@ -163,6 +163,10 @@ func runSSE(ctx context.Context, opts Options, output io.Writer) error {
 		return fmt.Errorf("expected Content-Type text/event-stream, got %q", resp.Header.Get("Content-Type"))
 	}
 
+	return streamSSE(resp.Body, opts, output)
+}
+
+func streamSSE(body io.ReadCloser, opts Options, output io.Writer) error {
 	var logFile *os.File
 	if opts.OutputFile != "" {
 		f, err := os.Create(opts.OutputFile)
@@ -183,47 +187,46 @@ func runSSE(ctx context.Context, opts Options, output io.Writer) error {
 			return false
 		}
 		outputErr = err
-		resp.Body.Close()
+		// Preserve the write error that caused the stream to stop.
+		_ = body.Close()
 		return true
 	}
-	parseErr := ParseStream(resp.Body, func(ev Event) {
+	parseErr := ParseStream(body, func(ev Event) {
 		if outputErr != nil {
 			return
 		}
-		eventType := ev.Event
-		if eventType == "" {
-			eventType = "message"
-		}
-		if opts.FilterType != "" && eventType != opts.FilterType {
-			return
-		}
-
-		timestamp := time.Now().Format("15:04:05")
-		header := fmt.Sprintf("[%s] EVENT: %s", timestamp, eventType)
-		if ev.ID != "" {
-			header += fmt.Sprintf(" (ID: %s)", ev.ID)
-		}
-
-		coloredHeader := color.Wrap(enabled, color.Bold+color.Cyan, header)
-		if _, err := fmt.Fprintln(output, coloredHeader); stopOnError(err) {
-			return
-		}
-
-		if ev.Data != "" {
-			if _, err := fmt.Fprintf(output, "  %s\n\n", ev.Data); stopOnError(err) {
-				return
-			}
-		}
-
-		if logFile != nil {
-			logLine := fmt.Sprintf("[%s] %s: %s\n", timestamp, eventType, ev.Data)
-			if _, err := logFile.WriteString(logLine); stopOnError(err) {
-				return
-			}
-		}
+		stopOnError(writeSSEEvent(output, logFile, ev, opts, enabled))
 	})
 	if outputErr != nil {
 		return outputErr
 	}
 	return parseErr
+}
+
+func writeSSEEvent(output io.Writer, logFile *os.File, ev Event, opts Options, enabled bool) error {
+	eventType := ev.Event
+	if eventType == "" {
+		eventType = "message"
+	}
+	if opts.FilterType != "" && eventType != opts.FilterType {
+		return nil
+	}
+	timestamp := time.Now().Format("15:04:05")
+	header := fmt.Sprintf("[%s] EVENT: %s", timestamp, eventType)
+	if ev.ID != "" {
+		header += fmt.Sprintf(" (ID: %s)", ev.ID)
+	}
+	if _, err := fmt.Fprintln(output, color.Wrap(enabled, color.Bold+color.Cyan, header)); err != nil {
+		return err
+	}
+	if ev.Data != "" {
+		if _, err := fmt.Fprintf(output, "  %s\n\n", ev.Data); err != nil {
+			return err
+		}
+	}
+	if logFile != nil {
+		_, err := fmt.Fprintf(logFile, "[%s] %s: %s\n", timestamp, eventType, ev.Data)
+		return err
+	}
+	return nil
 }
