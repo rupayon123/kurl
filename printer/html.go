@@ -23,10 +23,26 @@ func PrettyHTML(w io.Writer, r io.Reader, enabled bool) (int64, error) {
 		return 0, err
 	}
 
-	contentStr := string(data)
-	hasHtml := strings.Contains(strings.ToLower(contentStr), "<html")
-	hasBody := strings.Contains(strings.ToLower(contentStr), "<body")
-	hasHead := strings.Contains(strings.ToLower(contentStr), "<head")
+	var hasHtml, hasBody, hasHead bool
+	tokenizer := html.NewTokenizer(bytes.NewReader(data))
+	for {
+		kind := tokenizer.Next()
+		if kind == html.ErrorToken {
+			break
+		}
+		if kind != html.StartTagToken && kind != html.SelfClosingTagToken {
+			continue
+		}
+		name, _ := tokenizer.TagName()
+		switch string(name) {
+		case "html":
+			hasHtml = true
+		case "body":
+			hasBody = true
+		case "head":
+			hasHead = true
+		}
+	}
 
 	cw := &countingWriter{w: w}
 	if err := format(cw, doc, 0, enabled, hasHtml, hasBody, hasHead); err != nil {
