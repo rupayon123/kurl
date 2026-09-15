@@ -282,9 +282,12 @@ func handleGraphQLCommand(args []string) {
 		case arg == "-v" || arg == "--verbose":
 			verbose = true
 		case !strings.HasPrefix(arg, "-"):
-			if targetURL == "" {
-				targetURL = arg
+			if targetURL != "" {
+				fatal(fmt.Errorf("unexpected argument %q", arg))
 			}
+			targetURL = arg
+		default:
+			fatal(fmt.Errorf("unknown option %q", arg))
 		}
 	}
 
@@ -363,9 +366,12 @@ func handleSSECommand(args []string) {
 		case arg == "--no-color":
 			noColor = true
 		case !strings.HasPrefix(arg, "-"):
-			if targetURL == "" {
-				targetURL = arg
+			if targetURL != "" {
+				fatal(fmt.Errorf("unexpected argument %q", arg))
 			}
+			targetURL = arg
+		default:
+			fatal(fmt.Errorf("unknown option %q", arg))
 		}
 	}
 
