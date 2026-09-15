@@ -143,9 +143,18 @@ func fetchSingleWithContext(ctx context.Context, opts Options, target string) (*
 	}
 	transport := tunedTransport()
 	var rt http.RoundTripper = transport
+	cleanup := transport.CloseIdleConnections
 	if opts.HTTP3 {
-		rt = &http3.Transport{}
+		h3 := &http3.Transport{}
+		rt = h3
+		cleanup = func() { _ = h3.Close() }
 	}
+	releaseOnReturn := true
+	defer func() {
+		if releaseOnReturn {
+			cleanup()
+		}
+	}()
 	cli := &http.Client{
 		Transport: rt,
 		Timeout:   opts.Timeout,
@@ -225,6 +234,9 @@ func fetchSingleWithContext(ctx context.Context, opts Options, target string) (*
 			resp.Body = &cancelOnCloseReadCloser{ReadCloser: resp.Body, cancel: cancel}
 			cancel = nil // The caller owns the deadline until it closes the body.
 		}
+		// A Fetch call owns its transport; transfer cleanup to the response body.
+		resp.Body = &cancelOnCloseReadCloser{ReadCloser: resp.Body, cancel: cleanup}
+		releaseOnReturn = false
 		result := &Result{Request: req, Response: resp, Redirects: redirects}
 		if timing != nil {
 			result.Timing = timing.result()
