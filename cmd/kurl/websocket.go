@@ -91,6 +91,7 @@ func runWebSocket(opts cliOptions) {
 
 	// Send loop
 	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 4096), websocket.DefaultMaxPayloadBytes+1)
 	for scanner.Scan() {
 		text := scanner.Text()
 		if text == "" {
@@ -108,7 +109,7 @@ func runWebSocket(opts cliOptions) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
+		fatal(fmt.Errorf("error reading input: %w", err))
 	}
 }
 
