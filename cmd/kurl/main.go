@@ -137,6 +137,8 @@ func runRequest(opts cliOptions) {
 		fatal(err)
 	}
 
+	defer func() { _ = result.Response.Body.Close() }()
+
 	printerOptions := printer.Options{
 		Color:         useColor,
 		Raw:           opts.raw,
