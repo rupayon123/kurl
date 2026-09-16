@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/kavix/kurl/color"
 )
@@ -42,6 +43,9 @@ func ParseStream(r io.Reader, handler func(Event)) error {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if !utf8.ValidString(line) {
+			line = string([]rune(line))
+		}
 		if firstLine {
 			line = strings.TrimPrefix(line, "\ufeff")
 			firstLine = false
