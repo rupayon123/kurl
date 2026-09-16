@@ -79,7 +79,7 @@ func runWebSocket(opts cliOptions) {
 				if err == io.EOF {
 					fmt.Fprintln(os.Stdout, color.Wrap(useColor, color.Bold+color.Red, "\nDisconnected by remote host."))
 				} else if !strings.Contains(err.Error(), "use of closed network connection") {
-					fmt.Fprintf(os.Stderr, "\nError receiving: %v\n", err)
+					fatal(fmt.Errorf("error receiving WebSocket message: %w", err))
 				}
 				os.Exit(0)
 			}
