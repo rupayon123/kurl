@@ -25,7 +25,7 @@ func TestWebSocketReceiveFailureExitsNonzero(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		sum := sha1.Sum([]byte(r.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
 		_, _ = fmt.Fprintf(buffer, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", base64.StdEncoding.EncodeToString(sum[:]))
 		// Advertise a 64 MiB payload, exceeding the receive limit without allocating it.
@@ -41,8 +41,8 @@ func TestWebSocketReceiveFailureExitsNonzero(t *testing.T) {
 	if pipeErr != nil {
 		t.Fatal(pipeErr)
 	}
-	defer input.Close()
-	defer writer.Close()
+	defer func() { _ = input.Close() }()
+	defer func() { _ = writer.Close() }()
 	cmd.Stdin = input
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() != nil {
