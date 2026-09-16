@@ -66,9 +66,15 @@ func runWebSocket(opts cliOptions) {
 
 	// Print connection header
 	statusLine := fmt.Sprintf("kurl · WebSocket Connected to %s", opts.url)
-	fmt.Fprintln(os.Stdout, boxTop(useColor, statusLine))
-	fmt.Fprintln(os.Stdout, boxBottom(useColor, len(statusLine)+4))
-	fmt.Fprintln(os.Stdout, color.Wrap(useColor, color.Dim, "Type messages and press Enter to send. Press Ctrl+C to exit.\n"))
+	if _, err := fmt.Fprintln(os.Stdout, boxTop(useColor, statusLine)); err != nil {
+		fatal(fmt.Errorf("error writing WebSocket output: %w", err))
+	}
+	if _, err := fmt.Fprintln(os.Stdout, boxBottom(useColor, len(statusLine)+4)); err != nil {
+		fatal(fmt.Errorf("error writing WebSocket output: %w", err))
+	}
+	if _, err := fmt.Fprintln(os.Stdout, color.Wrap(useColor, color.Dim, "Type messages and press Enter to send. Press Ctrl+C to exit.\n")); err != nil {
+		fatal(fmt.Errorf("error writing WebSocket output: %w", err))
+	}
 
 	// Receive goroutine
 	go func() {
@@ -77,7 +83,9 @@ func runWebSocket(opts cliOptions) {
 			err := websocket.Message.Receive(ws, &msg)
 			if err != nil {
 				if err == io.EOF {
-					fmt.Fprintln(os.Stdout, color.Wrap(useColor, color.Bold+color.Red, "\nDisconnected by remote host."))
+					if _, writeErr := fmt.Fprintln(os.Stdout, color.Wrap(useColor, color.Bold+color.Red, "\nDisconnected by remote host.")); writeErr != nil {
+						fatal(fmt.Errorf("error writing WebSocket output: %w", writeErr))
+					}
 				} else if !strings.Contains(err.Error(), "use of closed network connection") {
 					fatal(fmt.Errorf("error receiving WebSocket message: %w", err))
 				}
@@ -94,7 +102,9 @@ func runWebSocket(opts cliOptions) {
 			}
 
 			prefix := color.Wrap(useColor, color.Bold+color.Green, "[RECV] <")
-			fmt.Fprintf(os.Stdout, "%s %s\n", prefix, printedMsg)
+			if _, err := fmt.Fprintf(os.Stdout, "%s %s\n", prefix, printedMsg); err != nil {
+				fatal(fmt.Errorf("error writing WebSocket output: %w", err))
+			}
 		}
 	}()
 
@@ -114,7 +124,9 @@ func runWebSocket(opts cliOptions) {
 		}
 
 		prefix := color.Wrap(useColor, color.Bold+color.Cyan, "[SEND] >")
-		fmt.Fprintf(os.Stdout, "%s %s\n", prefix, text)
+		if _, err := fmt.Fprintf(os.Stdout, "%s %s\n", prefix, text); err != nil {
+			fatal(fmt.Errorf("error writing WebSocket output: %w", err))
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
