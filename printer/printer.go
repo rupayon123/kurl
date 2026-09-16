@@ -273,7 +273,8 @@ func isJSON(contentType string, length int64) bool {
 
 func isBinary(contentType string) bool {
 	value := mediaType(contentType)
-	if value == "" || isJSON(contentType, 0) || isHTML(contentType) {
+	if value == "" || isJSON(contentType, 0) || isHTML(contentType) ||
+		value == "application/xml" || strings.HasSuffix(value, "+xml") {
 		return false
 	}
 	return !strings.HasPrefix(value, "text/")
